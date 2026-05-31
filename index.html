@@ -1,0 +1,1958 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PURESTATUS — Upload & Token Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── TIME-BASED THEME VARS (overridden by JS) ── */
+:root{
+  /* default: malam */
+  --bg:#07100d;
+  --bg2:#0a1610;
+  --s1:#0f1a15;
+  --s2:#132018;
+  --border:#1c2e24;
+  --teal:#00c896;
+  --teal2:#00a878;
+  --teal-dim:rgba(0,200,150,0.1);
+  --accent2:#00ff99;
+  --amber:#f5a623;
+  --red:#ff4d6d;
+  --text:#d8efe8;
+  --muted:#4a7060;
+  --sky-top:#07100d;
+  --sky-bot:#0f1a15;
+  --grid-col:rgba(0,200,150,0.02);
+  --glow-color:rgba(0,200,150,0.15);
+  --time-label:'🌙 Malam';
+  --mono:'JetBrains Mono',monospace;
+  --display:'Syne',sans-serif;
+}
+
+/* ── PAGI (05-10) ── */
+body.t-pagi{
+  --bg:#0d1a2a;--bg2:#112236;--s1:#162b3d;--s2:#1a3248;
+  --border:#1e4060;--teal:#38bdf8;--teal2:#0ea5e9;
+  --teal-dim:rgba(56,189,248,0.1);--accent2:#7dd3fc;
+  --text:#e0f2fe;--muted:#4a7090;
+  --sky-top:#0c1a2a;--sky-bot:#1e3a5f;
+  --grid-col:rgba(56,189,248,0.025);--glow-color:rgba(56,189,248,0.15);
+}
+/* ── SIANG (10-15) ── */
+body.t-siang{
+  --bg:#0d1f1a;--bg2:#102820;--s1:#143225;--s2:#193b2b;
+  --border:#1f4a34;--teal:#00e0a0;--teal2:#00c890;
+  --teal-dim:rgba(0,224,160,0.1);--accent2:#34d399;
+  --text:#d1fae5;--muted:#4a7868;
+  --sky-top:#0a1f16;--sky-bot:#163d28;
+  --grid-col:rgba(0,224,160,0.025);--glow-color:rgba(0,200,150,0.18);
+}
+/* ── SORE (15-19) ── */
+body.t-sore{
+  --bg:#1a0e05;--bg2:#22130a;--s1:#2a180c;--s2:#341e12;
+  --border:#4a2e18;--teal:#f97316;--teal2:#ea6a10;
+  --teal-dim:rgba(249,115,22,0.1);--accent2:#fb923c;
+  --text:#fef3e2;--muted:#7a5030;
+  --sky-top:#180e04;--sky-bot:#3d2010;
+  --grid-col:rgba(249,115,22,0.025);--glow-color:rgba(249,115,22,0.15);
+}
+/* ── MALAM (19-05) ── */
+body.t-malam{
+  --bg:#07100d;--bg2:#0a1610;--s1:#0f1a15;--s2:#132018;
+  --border:#1c2e24;--teal:#00c896;--teal2:#00a878;
+  --teal-dim:rgba(0,200,150,0.1);--accent2:#00ff99;
+  --text:#d8efe8;--muted:#4a7060;
+  --sky-top:#07100d;--sky-bot:#0f1a15;
+  --grid-col:rgba(0,200,150,0.02);--glow-color:rgba(0,200,150,0.15);
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--teal)}
+
+/* ── BODY & CANVAS ── */
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--display);min-height:100vh;overflow-x:hidden;
+  transition:background .8s ease,color .8s ease;
+}
+canvas#sky{position:fixed;inset:0;pointer-events:none;z-index:0}
+
+/* grid overlay */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(var(--grid-col) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid-col) 1px,transparent 1px);
+  background-size:36px 36px;pointer-events:none;z-index:1;
+  transition:background .8s ease;
+}
+/* shimmer top bar */
+body::after{
+  content:'';position:fixed;top:0;left:0;right:0;height:2px;z-index:100;
+  background:linear-gradient(90deg,transparent 0%,var(--teal) 40%,var(--accent2) 60%,transparent 100%);
+  background-size:200% auto;
+  animation:shimmerBar 3s linear infinite;
+}
+@keyframes shimmerBar{0%{background-position:200% center}100%{background-position:-200% center}}
+
+/* ── WRAP ── */
+.wrap{max-width:640px;margin:0 auto;padding:20px 14px 80px;position:relative;z-index:2}
+
+/* ═══════════════════════════════════════
+   HEADER BOX
+═══════════════════════════════════════ */
+.hdr-box{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:28px 24px 24px;
+  margin-bottom:14px;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+  animation:revealUp .7s cubic-bezier(.22,1,.36,1) both;
+  transition:background .8s,border-color .8s;
+}
+.hdr-box::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,var(--glow-color),transparent 70%);
+  pointer-events:none;transition:background .8s;
+}
+
+/* time badge inside header */
+.time-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:100px;padding:5px 14px;margin-bottom:16px;
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  letter-spacing:.08em;text-transform:uppercase;
+  transition:all .8s;
+}
+.time-badge b{color:var(--teal);transition:color .8s}
+
+/* status pill inside header */
+.hdr-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:100px;padding:5px 14px;margin-bottom:14px;
+  font-family:var(--mono);font-size:10px;color:var(--teal);
+  letter-spacing:.08em;text-transform:uppercase;
+  transition:all .8s;
+}
+.hdr-badge-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--teal);box-shadow:0 0 6px var(--teal);
+  animation:blink 3s infinite;flex-shrink:0;
+  transition:background .8s,box-shadow .8s;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* badges row */
+.hdr-badges{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+
+/* title */
+h1{
+  font-size:clamp(40px,9vw,70px);font-weight:800;
+  line-height:.92;letter-spacing:-.04em;
+  background:linear-gradient(135deg,#fff 0%,var(--teal) 50%,var(--accent2) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:14px;position:relative;
+  transition:none;
+}
+
+
+/* subtitle steps */
+.hdr-steps{
+  display:flex;align-items:center;justify-content:center;
+  flex-wrap:wrap;gap:4px 2px;
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  line-height:1.8;transition:color .8s;
+}
+.hdr-steps .step{
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:6px;padding:3px 10px;
+  color:var(--text);font-size:10px;
+  transition:all .8s;
+}
+.hdr-steps .step b{color:var(--teal);transition:color .8s}
+.hdr-steps .arr{color:var(--muted);padding:0 2px}
+
+/* ── STATS STRIP ── */
+.stats-strip{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:8px;
+  margin-bottom:14px;
+  animation:revealUp .6s .15s cubic-bezier(.22,1,.36,1) both;
+}
+.stat-box{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:14px;padding:14px 8px;text-align:center;
+  transition:all .3s,background .8s,border-color .8s;
+}
+.stat-box:hover{border-color:var(--teal);transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.stat-num{
+  font-family:var(--mono);font-size:18px;font-weight:700;
+  color:var(--teal);display:block;transition:color .8s;
+}
+.stat-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);transition:color .8s}
+
+/* ── FEATURE PILLS ── */
+.pills{
+  display:flex;flex-wrap:wrap;gap:6px;
+  margin-bottom:14px;justify-content:center;
+  animation:revealUp .6s .2s cubic-bezier(.22,1,.36,1) both;
+}
+.pill{
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:100px;padding:5px 12px;
+  font-size:10px;font-family:var(--mono);color:var(--muted);
+  transition:all .2s,background .8s,border-color .8s;cursor:default;
+}
+.pill:hover{border-color:var(--teal);color:var(--teal);transform:translateY(-2px)}
+
+/* ── BOT STATUS BAR ── */
+.bot-status{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  background:var(--s1);border:1px solid var(--border);border-radius:100px;
+  padding:10px 24px;margin-bottom:14px;font-family:var(--mono);font-size:13px;
+  animation:revealUp .6s .25s both;
+  transition:all .3s,background .8s,border-color .8s;
+}
+.bot-status:hover{border-color:var(--teal);box-shadow:0 0 16px var(--teal-dim)}
+.bot-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--teal);box-shadow:0 0 8px var(--teal);
+  animation:blink 4s infinite;flex-shrink:0;
+  transition:background .8s,box-shadow .8s;
+  position:relative;
+}
+.bot-dot::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(0,200,150,.12)}
+
+
+/* ── CARD ── */
+.card{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:16px;margin-bottom:14px;overflow:hidden;
+  animation:revealUp .55s cubic-bezier(.22,1,.36,1) both;
+  transition:border-color .3s,box-shadow .3s,background .8s;
+}
+.card:hover{border-color:color-mix(in srgb,var(--teal) 30%,transparent);box-shadow:0 4px 24px rgba(0,0,0,.4)}
+.card-head{
+  display:flex;align-items:center;gap:10px;padding:13px 18px;
+  border-bottom:1px solid var(--border);font-size:11px;
+  font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;
+  color:var(--teal);transition:all .8s;
+}
+.card-body{padding:18px}
+
+/* ── TABS ── */
+.tab-row{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border)}
+.tab{
+  padding:13px;text-align:center;cursor:pointer;
+  font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--muted);transition:all .25s;border:none;
+  background:var(--bg2);display:flex;align-items:center;justify-content:center;gap:6px;
+  position:relative;
+  transition:all .25s,background .8s,color .8s;
+}
+.tab::after{
+  content:'';position:absolute;bottom:0;left:50%;right:50%;
+  height:2px;background:var(--teal);transition:left .25s,right .25s;border-radius:2px;
+}
+.tab.active{color:var(--teal);background:var(--s1)}
+.tab.active::after{left:0;right:0}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── MODE BTNS ── */
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.mode-btn{
+  background:var(--s2);border:2px solid var(--border);border-radius:12px;
+  padding:13px 6px;cursor:pointer;text-align:center;user-select:none;
+  position:relative;overflow:hidden;
+  transition:all .25s cubic-bezier(.22,1,.36,1),background .8s,border-color .8s;
+}
+.mode-btn::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.07),transparent);
+  opacity:0;transition:opacity .2s;
+}
+.mode-btn:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.mode-btn:hover::after{opacity:1}
+.mode-btn:active{transform:scale(.96)}
+.mode-btn.sel-fast{border-color:#ffd600;background:rgba(255,214,0,.08)}
+.mode-btn.sel-normal{border-color:#39ff6e;background:rgba(57,255,110,.08)}
+.mode-btn.sel-standard{border-color:var(--teal);background:var(--teal-dim)}
+.mode-ico{font-size:20px;display:block;margin-bottom:5px;transition:transform .3s}
+.mode-btn:hover .mode-ico{transform:scale(1.25) rotate(8deg)}
+
+.mode-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;display:block}
+.mode-desc{font-size:9px;color:var(--muted);font-family:var(--mono);display:block;margin-top:3px;line-height:1.4}
+.mode-fast{color:#ffd600}.mode-normal{color:#39ff6e}.mode-standard{color:var(--teal)}
+
+
+
+/* ── DROPZONE ── */
+.dz{
+  border:2px dashed var(--border);border-radius:12px;
+  padding:40px 20px;text-align:center;cursor:default;
+  background:var(--s2);margin-bottom:14px;position:relative;overflow:hidden;
+  transition:all .3s cubic-bezier(.22,1,.36,1),background .8s,border-color .8s;
+}
+.dz::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 50%,var(--teal-dim),transparent 70%);
+  opacity:0;transition:opacity .3s;
+}
+.dz:hover::before,.dz.drag-over::before{opacity:1}
+.dz.drag-over{border-color:var(--teal);transform:scale(1.01)}
+.dz.drag-over{box-shadow:0 0 30px var(--teal-dim)}
+.dz.has-file{border-style:solid;border-color:var(--teal);padding:18px;cursor:default;transform:none}
+.btn-pick{
+  display:inline-flex;align-items:center;gap:8px;
+  margin-top:14px;padding:11px 26px;
+  background:linear-gradient(135deg,var(--teal),var(--teal2));
+  border:none;border-radius:10px;color:#000;
+  font-family:var(--display);font-size:12px;font-weight:800;
+  letter-spacing:.04em;text-transform:uppercase;cursor:pointer;
+  transition:all .2s cubic-bezier(.22,1,.36,1);
+  box-shadow:0 4px 16px rgba(0,200,150,.25);
+  position:relative;z-index:10;
+}
+.btn-pick:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,200,150,.4)}
+.btn-pick:active{transform:scale(.96)}
+.btn-change{
+  background:var(--s2);border:1px solid var(--border);
+  border-radius:8px;padding:7px 13px;cursor:pointer;
+  font-size:10px;font-family:var(--mono);color:var(--muted);
+  transition:all .2s,background .8s,border-color .8s;white-space:nowrap;flex-shrink:0;
+  margin-left:4px;position:relative;z-index:10;
+}
+.btn-change:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim)}
+.fp-rm{background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.25);color:var(--red);border-radius:8px;padding:7px 11px;cursor:pointer;font-size:10px;font-family:var(--mono);transition:all .2s;white-space:nowrap;flex-shrink:0;position:relative;z-index:10}
+.dz-ico{font-size:32px;margin-bottom:10px;display:block}
+.dz.drag-over .dz-ico{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dz-title{font-size:14px;font-weight:700;margin-bottom:4px}
+.dz-sub{font-size:11px;color:var(--muted);font-family:var(--mono)}
+input[type=file]{display:none}
+
+/* ── FILE PREVIEW ── */
+.fp{display:flex;align-items:center;gap:12px}
+.fp-thumb{width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+.fp-ph{width:56px;height:56px;border-radius:8px;background:var(--teal-dim);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.fp-info{flex:1;text-align:left;min-width:0}
+.fp-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-meta{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+/* fp-rm: see .dz.has-file block */
+.fp-rm:hover{background:rgba(255,77,109,.2)}
+
+/* ── ROTATE ── */
+.rotate-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.rotate-btn{
+  background:var(--s2);border:1px solid var(--border);border-radius:8px;
+  padding:9px;text-align:center;cursor:pointer;font-size:11px;
+  font-family:var(--mono);color:var(--muted);
+  display:flex;align-items:center;justify-content:center;gap:5px;
+  transition:all .2s,background .8s,border-color .8s;
+}
+.rotate-btn:hover{border-color:var(--teal);color:var(--text);background:var(--teal-dim)}
+.rotate-btn:active{transform:scale(.95)}
+
+/* ── FILE DETAIL ── */
+.file-detail{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:4px 0;margin-top:12px;transition:all .8s}
+.detail-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12px}
+.detail-row:last-child{border-bottom:none}
+.detail-ico{font-size:13px;width:20px;text-align:center;flex-shrink:0}
+.detail-key{color:var(--muted);font-family:var(--mono);font-size:10px;min-width:76px;flex-shrink:0;transition:color .8s}
+.detail-val{color:var(--text);font-weight:700;font-size:12px;word-break:break-all}
+
+/* ── URL INPUT ── */
+.url-info{
+  font-size:11px;font-family:var(--mono);color:var(--muted);
+  background:var(--teal-dim);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;margin-bottom:12px;line-height:1.7;
+  transition:all .8s;
+}
+.url-info b{color:var(--teal);transition:color .8s}
+.url-input{
+  width:100%;background:var(--s2);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:11px 14px;transition:border-color .2s,background .8s;outline:none;
+}
+.url-input:focus{border-color:var(--teal)}
+.url-input::placeholder{color:var(--muted)}
+
+/* ── CAPTION ── */
+.field-label{
+  font-size:10px;font-family:var(--mono);color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;display:block;
+  transition:color .8s;
+}
+.field-textarea{
+  width:100%;background:var(--s2);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-family:var(--display);font-size:12px;
+  padding:11px 14px;resize:vertical;min-height:52px;
+  transition:border-color .2s,background .8s;outline:none;
+}
+.field-textarea:focus{border-color:var(--teal)}
+.char-count{font-size:10px;font-family:var(--mono);color:var(--muted);text-align:right;margin-top:4px;transition:color .8s}
+
+/* ── MAIN BUTTON ── */
+.btn-main{
+  width:100%;padding:15px;
+  background:linear-gradient(135deg,var(--teal),var(--teal2));
+  border:none;border-radius:12px;color:#000;
+  font-family:var(--display);font-size:14px;font-weight:800;
+  letter-spacing:.04em;text-transform:uppercase;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  margin-top:16px;position:relative;overflow:hidden;
+  transition:all .25s cubic-bezier(.22,1,.36,1);
+}
+.btn-main:hover:not(:disabled){
+  transform:translateY(-3px);
+  box-shadow:0 12px 32px rgba(0,200,150,.35);
+  letter-spacing:.07em;
+}
+.btn-main:active:not(:disabled){transform:scale(.97)}
+.btn-main:disabled{opacity:.35;cursor:not-allowed;transform:none}
+/* ripple */
+.btn-main .ripple-el{
+  position:absolute;border-radius:50%;
+  transform:scale(0);background:rgba(255,255,255,.3);
+  animation:rippleAnim .6s ease-out forwards;
+  pointer-events:none;
+}
+@keyframes rippleAnim{to{transform:scale(4);opacity:0}}
+
+/* ── PROGRESS CARD ── */
+.progress-card{
+  background:var(--s1);border:1px solid var(--border);border-radius:16px;
+  padding:0;margin-bottom:14px;display:none;overflow:hidden;
+  transition:all .8s;
+}
+.progress-card.show{display:block}
+.prog-body{padding:18px}
+.prog-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.prog-label{font-size:12px;font-family:var(--mono);color:var(--teal);transition:color .8s}
+.prog-pct{font-size:16px;font-family:var(--mono);font-weight:700}
+.prog-bar-bg{height:8px;background:var(--border);border-radius:100px;overflow:hidden;margin-bottom:8px;transition:background .8s}
+.prog-bar{
+  height:100%;background:linear-gradient(90deg,var(--teal),var(--accent2));
+  border-radius:100px;width:0%;transition:width .4s;
+  box-shadow:0 0 10px var(--teal);
+}
+
+.prog-meta{display:flex;justify-content:space-between;font-size:10px;font-family:var(--mono)}
+.prog-speed{color:var(--teal);transition:color .8s}
+.prog-time{color:var(--muted);transition:color .8s}
+.prog-size-box{
+  background:rgba(0,0,0,.3);border:1px solid var(--border);
+  border-radius:8px;padding:12px;margin-top:10px;text-align:center;
+  transition:all .8s;
+}
+.prog-size-val{font-size:18px;font-weight:800;font-family:var(--mono);color:var(--teal);transition:color .8s}
+.prog-size-sub{font-size:10px;color:var(--muted);margin-top:2px;transition:color .8s}
+.prog-warn{
+  font-size:11px;font-family:var(--mono);color:var(--amber);
+  background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.2);
+  border-radius:8px;padding:10px 14px;margin-top:10px;text-align:center;line-height:1.6;
+}
+/* wave bars */
+.wave-loader{display:flex;align-items:center;gap:4px;margin-top:10px;justify-content:center}
+.wave-bar{width:4px;height:14px;background:var(--teal);border-radius:2px;animation:waveAnim 1s ease-in-out infinite;transition:background .8s}
+.wave-bar:nth-child(2){animation-delay:.1s}
+.wave-bar:nth-child(3){animation-delay:.2s}
+.wave-bar:nth-child(4){animation-delay:.3s}
+.wave-bar:nth-child(5){animation-delay:.4s}
+@keyframes waveAnim{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.8)}}
+
+/* ── RESULT CARD ── */
+.result-card{
+  background:rgba(0,200,150,.04);border:1px solid rgba(0,200,150,.25);
+  border-radius:16px;margin-bottom:14px;display:none;overflow:hidden;
+  transition:all .8s;
+}
+.result-card.show{display:block;animation:fadeUp .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.result-title{
+  font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;
+  letter-spacing:.08em;padding:14px 18px;border-bottom:1px solid rgba(0,200,150,.15);
+  font-family:var(--mono);display:flex;align-items:center;gap:8px;
+  transition:color .8s;
+}
+
+/* ── TOKEN BOX ── */
+.token-box{
+  background:#000;border:1px solid var(--border);border-radius:10px;
+  padding:14px;font-family:var(--mono);font-size:10px;color:var(--teal);
+  line-height:1.9;word-break:break-all;margin-bottom:10px;
+  max-height:140px;overflow-y:auto;transition:all .3s,color .8s;
+}
+.token-box:hover{border-color:var(--teal);box-shadow:0 0 16px var(--teal-dim)}
+.result-card.show .token-box{animation:tokenReveal .7s cubic-bezier(.22,1,.36,1) .2s both}
+@keyframes tokenReveal{from{filter:blur(6px);opacity:0}to{filter:none;opacity:1}}
+.token-expiry{
+  display:flex;align-items:center;gap:8px;font-size:11px;
+  font-family:var(--mono);color:var(--muted);margin-bottom:12px;transition:color .8s;
+}
+.token-expiry b{color:var(--text);font-size:14px}
+
+/* ── COPY BUTTON ── */
+.btn-copy{
+  width:100%;padding:12px;background:var(--s2);border:1px solid var(--teal);
+  border-radius:10px;color:var(--teal);font-family:var(--mono);font-size:12px;
+  font-weight:700;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:8px;margin-bottom:14px;
+  transition:all .25s,background .8s;position:relative;overflow:hidden;
+}
+.btn-copy:hover{background:var(--teal-dim);transform:translateY(-2px)}
+.btn-copy.copied{border-color:#39ff6e;color:#39ff6e}
+
+/* ── CAPTION ROW ── */
+.caption-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-bottom:6px}
+.caption-in{
+  background:var(--s2);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-family:var(--display);font-size:12px;
+  padding:9px 12px;outline:none;transition:border-color .2s,background .8s;min-width:0;
+}
+.caption-in:focus{border-color:var(--teal)}
+.btn-sm{
+  padding:9px 12px;border-radius:10px;font-size:11px;font-family:var(--mono);
+  font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;border:1px solid;
+}
+.btn-update{background:var(--teal-dim);border-color:var(--teal);color:var(--teal)}
+.btn-update:hover{background:var(--teal);color:#000}
+.btn-hapus{background:rgba(255,77,109,.07);border-color:rgba(255,77,109,.3);color:var(--red)}
+.btn-hapus:hover{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* ── ROOM ── */
+.room-grid{display:flex;flex-direction:column;gap:8px}
+.room-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;padding:12px;
+  border-radius:10px;background:linear-gradient(135deg,#25d366,#128c7e);
+  border:none;color:#fff;font-family:var(--display);font-size:13px;font-weight:700;
+  cursor:pointer;text-decoration:none;position:relative;overflow:hidden;
+  transition:all .25s cubic-bezier(.22,1,.36,1);
+}
+.room-btn:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 10px 28px rgba(37,211,102,.3)}
+.room-btn:active{transform:scale(.97)}
+
+/* ── ACTION ROW ── */
+.action-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-secondary{
+  padding:12px;border-radius:10px;background:var(--s2);border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:11px;font-weight:700;
+  cursor:pointer;transition:all .2s,background .8s,border-color .8s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-secondary:hover{border-color:var(--teal);color:var(--teal);transform:translateY(-2px)}
+.btn-amber{
+  padding:12px;border-radius:10px;background:rgba(245,166,35,.08);
+  border:1px solid rgba(245,166,35,.3);color:var(--amber);
+  font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer;
+  transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-amber:hover{background:var(--amber);color:#000;border-color:var(--amber);transform:translateY(-2px)}
+
+/* ── QRIS ── */
+.qris-card{
+  background:var(--s1);border:1px solid var(--border);border-radius:16px;
+  padding:20px;margin-bottom:14px;text-align:center;
+  transition:all .3s,background .8s,border-color .8s;
+}
+.qris-card:hover{border-color:color-mix(in srgb,var(--teal) 30%,transparent);box-shadow:0 6px 28px rgba(0,0,0,.35)}
+.qris-title{
+  font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;
+  letter-spacing:.08em;margin-bottom:4px;font-family:var(--mono);
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:color .8s;
+}
+.qris-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:14px;transition:color .8s}
+.qris-img{
+  width:100%;max-width:260px;border-radius:12px;border:2px solid var(--border);
+  display:block;margin:0 auto 14px;transition:transform .4s cubic-bezier(.22,1,.36,1),box-shadow .3s,border-color .8s;
+}
+.qris-img:hover{transform:scale(1.04);box-shadow:0 10px 32px rgba(0,0,0,.4)}
+
+/* ── ERROR ── */
+.err-box{
+  background:rgba(255,77,109,.07);border:1px solid rgba(255,77,109,.25);
+  border-radius:10px;padding:11px 14px;margin-top:10px;font-size:11px;
+  font-family:var(--mono);color:var(--red);display:none;
+}
+.err-box.show{display:block;animation:shake .4s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+
+/* ── PANDUAN LIST ── */
+.info-list{list-style:none}
+.info-list li{
+  font-size:11px;font-family:var(--mono);color:var(--muted);
+  padding:7px 6px;display:flex;gap:10px;align-items:flex-start;line-height:1.5;
+  border-bottom:1px solid rgba(255,255,255,.04);border-radius:6px;
+  transition:all .2s,color .8s;
+}
+.info-list li:last-child{border-bottom:none}
+.info-list li b{color:var(--text);transition:color .8s}
+.info-list li:hover{background:var(--teal-dim);color:var(--text);transform:translateX(4px)}
+
+/* ── MODAL ── */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.88);
+  display:flex;align-items:flex-end;justify-content:center;
+  z-index:999;padding:16px;animation:fadein .2s;
+}
+.modal-bg.hide{display:none}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:20px 20px 16px 16px;padding:22px;width:100%;
+  max-width:480px;max-height:85vh;overflow-y:auto;
+  animation:revealUp .3s cubic-bezier(.22,1,.36,1) both;
+  transition:background .8s,border-color .8s;
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-head h3{font-size:14px;font-weight:700;color:var(--amber)}
+.modal-close{
+  width:30px;height:30px;border-radius:50%;background:var(--s2);
+  border:1px solid var(--border);color:var(--muted);cursor:pointer;
+  font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.modal-close:hover{color:var(--text);border-color:var(--text)}
+
+/* ── FOOTER ── */
+footer{text-align:center;margin-top:36px;font-size:10px;font-family:var(--mono);color:var(--muted);transition:color .8s}
+footer a{color:var(--teal);text-decoration:none;transition:color .8s}
+
+/* ── WEATHER STRIP ── */
+.weather-strip{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  background:var(--s1);border:1px solid var(--border);border-radius:100px;
+  padding:8px 20px;margin-bottom:14px;font-family:var(--mono);font-size:11px;
+  animation:revealUp .6s .3s both;
+  transition:all .3s,background .8s,border-color .8s;
+  flex-wrap:wrap;gap:6px 14px;
+}
+.weather-strip:hover{border-color:var(--teal);box-shadow:0 0 16px var(--teal-dim)}
+.weather-ico{font-size:18px}
+.weather-temp{font-size:15px;font-weight:700;color:var(--teal);transition:color .8s}
+.weather-desc{color:var(--text);font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.weather-loc{color:var(--muted);font-size:9px}
+.weather-sep{color:var(--border)}
+.jakarta-time{
+  font-family:var(--mono);font-size:11px;color:var(--teal);
+  font-weight:700;letter-spacing:.06em;transition:color .8s;
+}
+.jakarta-tz{font-size:9px;color:var(--muted)}
+
+/* ── NOTIFY MODAL ── */
+.notify-modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.92);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;padding:16px;animation:fadein .3s;
+}
+.notify-modal-bg.hide{display:none}
+.notify-modal{
+  background:var(--s1);border:1px solid var(--border);
+  border-radius:20px;padding:0;width:100%;
+  max-width:440px;max-height:90vh;overflow:hidden;
+  animation:revealUp .4s cubic-bezier(.22,1,.36,1) both;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+  transition:background .8s,border-color .8s;
+}
+.notify-header{
+  background:linear-gradient(135deg,var(--s2),var(--s1));
+  border-bottom:1px solid var(--border);
+  padding:20px 20px 16px;text-align:center;position:relative;
+  transition:background .8s;
+}
+.notify-header::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,var(--glow-color),transparent 70%);
+  pointer-events:none;
+}
+.notify-logo{
+  font-size:36px;font-weight:800;font-family:var(--display);
+  background:linear-gradient(135deg,#fff 0%,var(--teal) 50%,var(--accent2) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  line-height:1;margin-bottom:6px;
+}
+.notify-subtitle{font-size:11px;font-family:var(--mono);color:var(--muted);letter-spacing:.06em}
+.notify-body{padding:18px;overflow-y:auto;max-height:calc(90vh - 180px)}
+.notify-section{margin-bottom:14px}
+.notify-section-title{
+  font-size:10px;font-family:var(--mono);color:var(--teal);
+  text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;
+  display:flex;align-items:center;gap:6px;transition:color .8s;
+}
+.notify-steps{display:flex;flex-direction:column;gap:6px}
+.notify-step{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--s2);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text);
+  line-height:1.5;transition:all .2s,background .8s,border-color .8s;
+}
+.notify-step:hover{border-color:var(--teal);transform:translateX(3px)}
+.notify-step-num{
+  background:var(--teal);color:#000;border-radius:50%;
+  width:18px;height:18px;display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px;
+  transition:background .8s;
+}
+.notify-step b{color:var(--teal);transition:color .8s}
+.notify-warn{
+  background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);
+  border-radius:10px;padding:11px 14px;font-size:10px;font-family:var(--mono);
+  color:var(--amber);line-height:1.6;text-align:center;margin-bottom:14px;
+}
+.notify-footer{padding:0 18px 18px}
+.notify-btn{
+  width:100%;padding:13px;background:linear-gradient(135deg,var(--teal),var(--accent2));
+  border:none;border-radius:12px;color:#000;font-family:var(--display);
+  font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.02em;
+  transition:all .2s;position:relative;overflow:hidden;
+}
+.notify-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,200,150,.35)}
+.notify-btn:active{transform:scale(.97)}
+.notify-check-row{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:10px;
+  cursor:pointer;user-select:none;
+}
+.notify-check-row input{accent-color:var(--teal);cursor:pointer}
+
+/* ── WM TOGGLE ── */
+.wm-toggle-row{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--s2);border:1px solid var(--border);border-radius:10px;
+  padding:10px 14px;transition:all .3s,background .8s,border-color .8s;
+}
+.wm-toggle-row:hover{border-color:var(--teal)}
+.wm-toggle-info{flex:1}
+.wm-toggle-desc{display:block;font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:3px;transition:color .3s}
+.wm-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.wm-switch input{opacity:0;width:0;height:0}
+.wm-slider{
+  position:absolute;inset:0;cursor:pointer;border-radius:24px;
+  background:var(--border);transition:background .3s;
+}
+.wm-slider::before{
+  content:'';position:absolute;left:3px;top:3px;
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;transition:transform .3s,background .3s;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+.wm-switch input:checked + .wm-slider{background:var(--teal)}
+.wm-switch input:checked + .wm-slider::before{transform:translateX(20px);background:#fff}
+.wm-switch input:not(:checked) + .wm-slider{background:var(--red)}
+.wm-switch input:not(:checked) + .wm-slider::before{background:#fff}
+.wm-nowm-badge{
+  font-size:10px;font-family:var(--mono);color:var(--red);
+  background:rgba(255,77,109,.07);border:1px solid rgba(255,77,109,.25);
+  border-radius:8px;padding:7px 12px;margin-top:6px;
+  animation:shake .3s ease;
+}
+.wm-pill.wm-on{border-color:'';color:'';background:''}
+.wm-pill.wm-off{border-color:var(--red)!important;color:var(--red)!important;background:rgba(255,77,109,.1)!important}
+
+/* ── UTILS ── */
+.hidden{display:none!important}
+.mt-8{margin-top:8px}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.p-20{padding:18px}
+
+/* ── KEYFRAMES ── */
+@keyframes revealUp{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+
+<!-- Sky canvas (particles + time bg) -->
+<canvas id="sky"></canvas>
+<canvas id="weatherCanvas" style="position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.52"></canvas>
+
+<div class="wrap">
+
+  <!-- ══ HEADER BOX ══ -->
+  <div class="hdr-box">
+    <div class="hdr-badges">
+      <div class="time-badge" id="timeBadge">
+        🌙 &nbsp;<b id="timeLabel">Malam</b>&nbsp;· <span id="clockLabel">00:00</span>
+      </div>
+      <div class="time-badge" id="jakartaBadge" style="gap:5px">
+        🕐&nbsp;<span class="jakarta-time" id="jakartaClock">--:--:--</span>&nbsp;<span class="jakarta-tz">WIB</span>
+      </div>
+      <div class="hdr-badge">
+        <div class="hdr-badge-dot"></div>
+        Status Bot Online ✓
+      </div>
+    </div>
+
+    <h1>PURE-<br>STATUS</h1>
+
+    <div class="hdr-steps">
+      <span class="step">☁️ Upload</span>
+      <span class="arr">→</span>
+      <span class="step">🎛️ Pilih Mode</span>
+      <span class="arr">→</span>
+      <span class="step">🔑 Dapat <b>Token</b></span>
+      <span class="arr">→</span>
+      <span class="step">📱 Paste ke Bot WA</span>
+    </div>
+  </div>
+
+  <!-- ══ STATS ══ -->
+  <div class="stats-strip">
+    <div class="stat-box">
+      <span class="stat-num">3</span>
+      <span class="stat-lbl">Encode Modes</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-num">200MB</span>
+      <span class="stat-lbl">Max Video</span>
+    </div>
+  </div>
+
+  <!-- ══ PILLS ══ -->
+  <div class="pills">
+    <span class="pill">⚡ Fast Encode</span>
+    <span class="pill">🔒 Token Secure</span>
+    <span class="pill">📱 WA Ready</span>
+    <span class="pill">🎬 HD Quality</span>
+    <span class="pill">☁️ Cloud Upload</span>
+    <span class="pill wm-pill" id="nowmPill" onclick="toggleNowm()" style="cursor:pointer;user-select:none" title="Klik untuk toggle watermark">🖊️ Watermark: ON</span>
+  </div>
+
+  <!-- ══ BOT STATUS ══ -->
+  <div class="bot-status">
+    <div class="bot-dot"></div>
+    <span>STATUS BOT: <b>ONLINE</b> ✅</span>
+  </div>
+
+  <!-- ══ WEATHER STRIP ══ -->
+  <div class="weather-strip" id="weatherStrip">
+    <span class="weather-ico" id="weatherIco">🌡️</span>
+    <span class="weather-temp" id="weatherTemp">--°C</span>
+    <span class="weather-sep">·</span>
+    <span class="weather-desc" id="weatherDesc">Memuat cuaca...</span>
+    <span class="weather-sep">·</span>
+    <span class="weather-loc" id="weatherLoc">📍 Deteksi lokasi...</span>
+  </div>
+
+  <!-- ══ FORM CARD ══ -->
+  <div class="card" id="formCard">
+    <div class="tab-row">
+      <button class="tab active" id="tabFile" onclick="switchTab('file')">☁️ Upload File</button>
+      <button class="tab" id="tabUrl" onclick="switchTab('url')">🔗 Via URL</button>
+    </div>
+    <div class="card-body">
+
+      <!-- Mode -->
+      <div class="modes">
+        <div class="mode-btn mode-fast" id="modeFast" onclick="setMode('fast')">
+          <span class="mode-ico">⚡</span>
+          <span class="mode-name">Fast</span>
+          <span class="mode-desc">Encode kilat<br>kualitas HD</span>
+        </div>
+        <div class="mode-btn mode-normal sel-normal" id="modeNormal" onclick="setMode('normal')">
+          <span class="mode-ico">⚖️</span>
+          <span class="mode-name">Normal</span>
+          <span class="mode-desc">Balance<br>default</span>
+        </div>
+        <div class="mode-btn mode-standard" id="modeStandard" onclick="setMode('standard')">
+          <span class="mode-ico">🐢</span>
+          <span class="mode-name">Standard</span>
+          <span class="mode-desc">File terkecil<br>encode lama</span>
+        </div>
+      </div>
+
+      <!-- Panel File -->
+      <div id="panelFile">
+        <div class="dz" id="dropzone">
+          <div id="dzDefault">
+            <div class="dz-ico">☁️</div>
+            <div class="dz-title">Pilih file foto atau video</div>
+            <div class="dz-sub" id="dzSub">Foto atau Video dari File Manager</div>
+            <div class="dz-sub mt-8">Maks <b>150MB</b> · Lebih besar? Pakai URL di bawah ↓</div>
+            <button class="btn-pick" onclick="triggerInput()">📂 Pilih File</button>
+          </div>
+          <div id="dzPreview" class="hidden">
+            <div class="fp">
+              <div class="fp-ph" id="fpPh">📄</div>
+              <img class="fp-thumb hidden" id="fpThumb" alt="preview"/>
+              <div class="fp-info">
+                <div class="fp-name" id="fpName">—</div>
+                <div class="fp-meta" id="fpMeta">—</div>
+              </div>
+              <button class="fp-rm" onclick="event.stopPropagation();removeFile(event)">✕ Hapus</button>
+              <button class="btn-change" onclick="event.stopPropagation();removeFile(event);setTimeout(triggerInput,80)">🔄 Ganti</button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="fileInputFile" onchange="handleFile(this.files[0])"/>
+
+        <div id="rotateControl" class="hidden">
+          <div class="rotate-row">
+            <div class="rotate-btn" onclick="rotate(-90)">↺ Kiri</div>
+            <div class="rotate-btn" onclick="rotate(90)">↻ Kanan</div>
+            <div class="rotate-btn" onclick="rotate(0)">↺ Reset</div>
+          </div>
+        </div>
+
+        <div class="file-detail hidden" id="fileDetail">
+          <div class="detail-row"><div class="detail-ico">📄</div><div class="detail-key">Nama File</div><div class="detail-val" id="dName">—</div></div>
+          <div class="detail-row"><div class="detail-ico">⚖️</div><div class="detail-key">Ukuran</div><div class="detail-val" id="dSize">—</div></div>
+          <div class="detail-row"><div class="detail-ico">📋</div><div class="detail-key">Tipe</div><div class="detail-val" id="dType">—</div></div>
+          <div class="detail-row hidden" id="dResRow"><div class="detail-ico">📐</div><div class="detail-key">Resolusi</div><div class="detail-val" id="dRes">—</div></div>
+        </div>
+      </div>
+
+      <!-- Panel URL -->
+      <div id="panelUrl" class="hidden">
+        <div class="url-info">
+          📌 Paste URL file dari <b>Catbox</b>, <b>Litterbox</b>, <b>Tmpfiles</b>, atau hosting lain.<br>
+          Token digenerate otomatis. Support hingga <b>500MB</b> via URL.
+        </div>
+        <input class="url-input" id="urlInput" type="url"
+          placeholder="https://litterbox.catbox.moe/abc123.mp4"
+          oninput="handleUrlInput(this.value)"/>
+        <div class="detail-row mt-12 hidden" id="urlDetailRow"
+          style="background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:11px">
+          <div class="detail-ico">🔗</div>
+          <div class="detail-key">URL</div>
+          <div class="detail-val" id="urlPreview" style="font-size:10px">—</div>
+        </div>
+      </div>
+
+      <!-- Watermark Toggle -->
+      <div class="mt-16" style="margin-bottom:14px">
+        <div class="wm-toggle-row" id="wmToggleRow">
+          <div class="wm-toggle-info">
+            <span class="field-label" style="margin-bottom:0">🖊️ Watermark Bot</span>
+            <span class="wm-toggle-desc" id="wmToggleDesc">Watermark akan ditambahkan ke hasil</span>
+          </div>
+          <label class="wm-switch">
+            <input type="checkbox" id="wmCheckbox" checked onchange="onWmChange(this)">
+            <span class="wm-slider"></span>
+          </label>
+        </div>
+        <div class="wm-nowm-badge hidden" id="wmNowmBadge">🚫 <b>-nowm aktif</b> — watermark tidak akan ditambahkan ke hasil</div>
+      </div>
+
+      <!-- Caption -->
+      <div class="mt-16">
+        <label class="field-label">✏️ Caption (Opsional)</label>
+        <textarea class="field-textarea" id="captionInput"
+          placeholder="Ketik caption status kamu... (emoji, angka, semua huruf ✓)"
+          oninput="updateCharCount('captionInput','charCount1');limitCaption(this)"></textarea>
+        <div class="char-count" id="charCount1">0/150 karakter</div>
+      </div>
+
+      <div class="err-box" id="errBox"></div>
+
+      <button class="btn-main" id="btnUpload" onclick="startUpload()" disabled>
+        🚀 Launch Upload & Generate Token
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ PROGRESS CARD ══ -->
+  <div class="progress-card" id="progressCard">
+    <div class="card-head">☁️ Upload ke Server...</div>
+    <div class="prog-body">
+      <div class="prog-row">
+        <span class="prog-label" id="progLabel">Memulai...</span>
+        <span class="prog-pct" id="progPct">0%</span>
+      </div>
+      <div class="prog-bar-bg"><div class="prog-bar" id="progBar"></div></div>
+      <div class="prog-meta">
+        <span class="prog-speed" id="progSpeed">⚡ 0 MB/s</span>
+        <span class="prog-time" id="progTime">⏱ Memulai...</span>
+      </div>
+      <div class="prog-size-box">
+        <div class="prog-size-val" id="progSizeVal">0.00 MB / 0.00 MB</div>
+        <div class="prog-size-sub">Progress Upload</div>
+      </div>
+      <div class="prog-warn">⚠️ JANGAN TUTUP atau REFRESH halaman ini!<br>Upload sedang berjalan ke server</div>
+      <div class="wave-loader">
+        <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        <div class="wave-bar"></div><div class="wave-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RESULT CARD ══ -->
+  <div class="result-card" id="resultCard">
+    <div class="result-title">✅ Upload Berhasil! 🎉</div>
+
+    <div class="card-head">🔑 Token Dasar:</div>
+    <div class="p-20">
+      <div class="token-box" id="tokenBox"></div>
+      <div class="token-expiry">⏱ Kadaluarsa: <b id="tokenCountdown">120:00</b></div>
+      <button class="btn-copy" id="btnCopy" onclick="copyToken()">📋 Salin Token Dasar</button>
+    </div>
+
+    <div class="card-head">✏️ Tambah Caption (Opsional)</div>
+    <div class="p-20">
+      <div class="caption-row">
+        <input class="caption-in" id="captionResult"
+          placeholder="Ketik caption di sini... (emoji & semua huruf ✓)"
+          oninput="updateCharCount('captionResult','charCount2');limitCaption(this)"/>
+        <button class="btn-sm btn-update" onclick="updateCaption()">↺ Update</button>
+        <button class="btn-sm btn-hapus" onclick="clearCaption()">Hapus</button>
+      </div>
+      <div class="char-count" id="charCount2">0/150 karakter</div>
+    </div>
+
+    <div class="card-head mt-12">📄 Detail File</div>
+    <div class="p-20">
+      <div class="file-detail">
+        <div class="detail-row"><div class="detail-ico">📄</div><div class="detail-key">File</div><div class="detail-val" id="rName">—</div></div>
+        <div class="detail-row"><div class="detail-ico">⚖️</div><div class="detail-key">Ukuran</div><div class="detail-val" id="rSize">—</div></div>
+        <div class="detail-row"><div class="detail-ico">⏱</div><div class="detail-key">Waktu Upload</div><div class="detail-val" id="rTime">—</div></div>
+        <div class="detail-row"><div class="detail-ico">🔧</div><div class="detail-key">Mode</div><div class="detail-val" id="rMode">—</div></div>
+      </div>
+    </div>
+
+    <div class="card-head mt-12">📱 Pilih Room WhatsApp</div>
+    <div class="p-20"><div class="room-grid" id="roomGrid"></div></div>
+
+    <div class="p-20" style="padding-top:0">
+      <div class="action-row">
+        <button class="btn-secondary" onclick="resetAll()">↺ Upload Lagi</button>
+        <button class="btn-amber" onclick="showTestModal()">✏️ Test Token</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ QRIS ══ -->
+  <div class="qris-card">
+    <div class="qris-title">💳 Support via QRIS</div>
+    <div class="qris-sub">Scan QRIS di bawah untuk mendukung PURESTATUS ❤️</div>
+    <img class="qris-img" src="https://raw.githubusercontent.com/ZiennDevv/audio/main/audio/suara-1780180428353.jpeg"
+      alt="QRIS PURESTATUS" onerror="this.onerror=null;this.style.opacity='0.4'"/>
+    <div style="font-size:10px;font-family:var(--mono);color:var(--muted)">Semua bank & e-wallet support · Nominal bebas</div>
+  </div>
+
+  <!-- ══ PANDUAN ══ -->
+  <div class="card">
+    <div class="card-head">📖 Panduan Penggunaan</div>
+    <div class="card-body">
+      <ul class="info-list">
+        <li><span>1️⃣</span><span>Pilih mode encode: Fast / Normal / Standard</span></li>
+        <li><span>2️⃣</span><span>Upload file atau paste URL media langsung</span></li>
+        <li><span>3️⃣</span><span>Tambahkan caption opsional jika mau</span></li>
+        <li><span>4️⃣</span><span>Klik <b>Launch Upload & Generate Token</b></span></li>
+        <li><span>5️⃣</span><span>Copy token yang muncul</span></li>
+        <li><span>6️⃣</span><span>Copy token yang muncul (format: <b>WXAI-xxx...</b>)</span></li>
+        <li><span>7️⃣</span><span>Join grup WA bot, ketik <b>.ps</b> lalu paste token — <b>.ps WXAI-NORMAL-ey...</b> ✅</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    <p>PURESTATUS HD — Proses encode dilakukan oleh bot WhatsApp</p>
+    <p style="margin-top:6px">Powered with ❤️ by <a href="#">Iann Belum Immo Jir</a> ✨</p>
+  </footer>
+</div>
+
+<!-- NOTIFY / TUTORIAL MODAL -->
+<div class="notify-modal-bg" id="notifyModal">
+  <div class="notify-modal">
+    <div class="notify-header">
+      <div class="notify-logo">PURE<br>STATUS</div>
+      <div class="notify-subtitle">📋 Panduan Sebelum Upload</div>
+    </div>
+    <div class="notify-body">
+      <div class="notify-section">
+        <div class="notify-section-title">🚀 Cara Pakai PureStatus</div>
+        <div class="notify-steps">
+          <div class="notify-step">
+            <div class="notify-step-num">1</div>
+            <span>Pilih <b>Mode Encode</b>: Fast 🟡 / Normal 🟢 / Standard 🔵 sesuai kebutuhan kamu</span>
+          </div>
+          <div class="notify-step">
+            <div class="notify-step-num">2</div>
+            <span>Pilih <b>Tipe File</b>: Gambar (max 200MB) atau Video (max 200MB)</span>
+          </div>
+          <div class="notify-step">
+            <div class="notify-step-num">3</div>
+            <span><b>Upload file</b> via drag & drop / klik, atau paste <b>URL media</b> langsung</span>
+          </div>
+          <div class="notify-step">
+            <div class="notify-step-num">4</div>
+            <span>Tambahkan <b>caption</b> opsional (max 150 karakter) untuk status kamu</span>
+          </div>
+          <div class="notify-step">
+            <div class="notify-step-num">5</div>
+            <span>Klik <b>🚀 Launch Upload & Generate Token</b> — tunggu proses selesai</span>
+          </div>
+          <div class="notify-step">
+            <div class="notify-step-num">6</div>
+            <span><b>Salin token</b> yang muncul (format: <b>WXAI-xxx...</b>), lalu <b>join grup WA bot</b></span>
+          </div>
+          <div class="notify-step">
+            <div class="notify-step-num">7</div>
+            <span>Ketik <b>.ps</b> lalu paste token — contoh: <b>.ps WXAI-NORMAL-ey...</b> ✅ Bot langsung proses & kirim hasilnya!</span>
+          </div>
+        </div>
+      </div>
+      <div class="notify-warn">
+        ⚠️ <b>PENTING:</b> Token berlaku <b>2 jam</b> setelah dibuat. Jangan tutup/refresh halaman saat upload berlangsung!
+      </div>
+    </div>
+    <div class="notify-footer">
+      <button class="notify-btn" onclick="closeNotify()">✅ Mengerti, Mulai Upload!</button>
+      <div class="notify-check-row">
+        <input type="checkbox" id="notifyDontShow" onchange="saveNotifyPref()"/>
+        <label for="notifyDontShow">Jangan tampilkan lagi hari ini</label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEST TOKEN MODAL -->
+<div class="modal-bg hide" id="testModal" onclick="closeModalBg(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>✏️ Test Token</h3>
+      <button class="modal-close" onclick="closeTestModal()">✕</button>
+    </div>
+    <label class="field-label">Paste Token di sini</label>
+    <textarea class="field-textarea" id="testTokenInput" rows="5" placeholder="WXAI-NORMAL-ey..."></textarea>
+    <button class="btn-main" onclick="doTestToken()">🔍 Decode & Cek Token</button>
+    <div id="testResult" style="margin-top:14px;font-family:var(--mono);font-size:11px;line-height:1.8;word-break:break-all;display:none;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px"></div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const CFG = {
+  tokenExpirySec: 7200,
+  maxFileMB: 200,
+  rooms: [
+    { label: 'Room 1', link: 'https://chat.whatsapp.com/DG534KR0R6p7CQk3QyRyDO' },
+    { label: 'JOIN SALURAN WHATSAPP', link: 'https://whatsapp.com/channel/0029Vb5qJXL8V0tmpfI8x73v', channel: true },
+  ],
+}
+
+const S = {
+  tab: 'file', type: 'video', mode: 'normal',
+  file: null, urlVal: '', rotation: 0,
+  token: '', tokenExpAt: 0, countdown: null,
+}
+
+// ═══════════════════════════════════════
+//  JAKARTA WIB CLOCK
+// ═══════════════════════════════════════
+function updateJakartaClock() {
+  const now = new Date()
+  const jakartaStr = now.toLocaleTimeString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  })
+  const el = document.getElementById('jakartaClock')
+  if (el) el.textContent = jakartaStr
+}
+setInterval(updateJakartaClock, 1000)
+
+// ═══════════════════════════════════════
+//  TIME-BASED THEME
+// ═══════════════════════════════════════
+const THEMES = {
+  pagi:   { cls:'t-pagi',  emoji:'🌅', label:'Pagi',  col:[56,189,248] },
+  siang:  { cls:'t-siang', emoji:'☀️',  label:'Siang', col:[0,224,160] },
+  sore:   { cls:'t-sore',  emoji:'🌇', label:'Sore',  col:[249,115,22] },
+  malam:  { cls:'t-malam', emoji:'🌙', label:'Malam', col:[0,200,150] },
+}
+function getTimeOfDay(h) {
+  if (h >= 5  && h < 10) return 'pagi'
+  if (h >= 10 && h < 15) return 'siang'
+  if (h >= 15 && h < 19) return 'sore'
+  return 'malam'
+}
+function applyTheme() {
+  // Use Jakarta/WIB time for theming
+  const nowJkt = new Date(new Date().toLocaleString('en-US', {timeZone: 'Asia/Jakarta'}))
+  const h    = nowJkt.getHours()
+  const tod  = getTimeOfDay(h)
+  const t    = THEMES[tod]
+  const body = document.body
+  Object.values(THEMES).forEach(th => body.classList.remove(th.cls))
+  body.classList.add(t.cls)
+  document.getElementById('timeBadge').firstChild.textContent = t.emoji + '\u00A0'
+  document.getElementById('timeLabel').textContent = t.label
+  const mm = String(nowJkt.getMinutes()).padStart(2,'0')
+  document.getElementById('clockLabel').textContent = `${h}:${mm}`
+  return t
+}
+
+// ═══════════════════════════════════════
+//  WEATHER-REACTIVE SKY CANVAS
+// ═══════════════════════════════════════
+;(function(){
+  const canvas = document.getElementById('sky')
+  const ctx    = canvas.getContext('2d')
+  let W, H, particles = [], theme, weatherType = 'clear'
+  // weather droplets / snowflakes
+  let drops = [], clouds = []
+
+  function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight }
+  resize()
+  window.addEventListener('resize', resize)
+
+  function mkParticle() {
+    return {
+      x: Math.random() * W, y: Math.random() * H,
+      vx: (Math.random() - .5) * .35,
+      vy: (Math.random() - .5) * .35,
+      r:  Math.random() * 2 + .5,
+      a:  Math.random() * .4 + .08,
+    }
+  }
+  for (let i = 0; i < 30; i++) particles.push(mkParticle())
+
+  function mkDrop() {
+    return { x: Math.random()*W, y: Math.random()*H - H, speed: 3+Math.random()*4, len: 10+Math.random()*10, a: Math.random()*.35+.1 }
+  }
+  function mkCloud() {
+    return { x: Math.random()*W, y: 40+Math.random()*120, r: 60+Math.random()*60, vx: .12+Math.random()*.18, a: Math.random()*.22+.06 }
+  }
+  for (let i = 0; i < 8; i++) drops.push(mkDrop())
+  for (let i = 0; i < 5; i++) clouds.push(mkCloud())
+
+  // expose setter for weather module
+  window._setSkyWeather = function(wt) { weatherType = wt }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H)
+    const col = theme ? theme.col : [0,200,150]
+
+    // gradient sky background
+    const grad = ctx.createLinearGradient(0, 0, 0, H)
+    grad.addColorStop(0, `rgba(${col[0]*.08|0},${col[1]*.08|0},${col[2]*.08|0},1)`)
+    grad.addColorStop(1, `rgba(${col[0]*.12|0},${col[1]*.12|0},${col[2]*.12|0},1)`)
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, W, H)
+
+    // draw clouds for cloudy/rain
+    if (weatherType === 'cloudy' || weatherType === 'rain' || weatherType === 'drizzle' || weatherType === 'fog') {
+      clouds.forEach(c => {
+        c.x += c.vx
+        if (c.x - c.r > W) c.x = -c.r
+        ctx.beginPath()
+        ctx.arc(c.x, c.y, c.r, 0, Math.PI*2)
+        ctx.fillStyle = `rgba(${col[0]*.6|0},${col[1]*.6|0},${col[2]*.6|0},${c.a})`
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(c.x + c.r*.55, c.y - c.r*.2, c.r*.7, 0, Math.PI*2)
+        ctx.fill()
+      })
+    }
+
+    // draw rain drops
+    if (weatherType === 'rain' || weatherType === 'drizzle') {
+      drops.forEach(d => {
+        d.y += d.speed
+        if (d.y > H) { d.y = -20; d.x = Math.random()*W }
+        ctx.beginPath()
+        ctx.moveTo(d.x, d.y)
+        ctx.lineTo(d.x - 1, d.y + d.len)
+        ctx.strokeStyle = `rgba(${col[0]},${col[1]},${col[2]},${d.a})`
+        ctx.lineWidth = weatherType==='drizzle' ? .5 : 1
+        ctx.stroke()
+      })
+    }
+
+    // draw snow (thunderstorm / snow weather)
+    if (weatherType === 'snow') {
+      drops.forEach(d => {
+        d.y += d.speed * .3
+        d.x += Math.sin(d.y*.04) * .5
+        if (d.y > H) { d.y = -5; d.x = Math.random()*W }
+        ctx.beginPath()
+        ctx.arc(d.x, d.y, 1.5, 0, Math.PI*2)
+        ctx.fillStyle = `rgba(255,255,255,${d.a})`
+        ctx.fill()
+      })
+    }
+
+    // particles (stars/dust)
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0
+      ctx.beginPath()
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+      ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${p.a})`
+      ctx.fill()
+    })
+
+    // connection lines: dinonaktifkan untuk performa
+
+    requestAnimationFrame(draw)
+  }
+
+  function syncTheme() { theme = THEMES[getTimeOfDay(new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Jakarta'})).getHours())] }
+  syncTheme()
+  setInterval(syncTheme, 60000)
+  draw()
+})()
+
+// ═══════════════════════════════════════
+//  WEATHER FETCH (Open-Meteo + GPS)
+// ═══════════════════════════════════════
+const WMO_MAP = {
+  0:{icon:'☀️',desc:'Cerah',type:'clear'},
+  1:{icon:'🌤️',desc:'Sebagian Cerah',type:'clear'},
+  2:{icon:'⛅',desc:'Berawan Sebagian',type:'cloudy'},
+  3:{icon:'☁️',desc:'Berawan',type:'cloudy'},
+  45:{icon:'🌫️',desc:'Berkabut',type:'fog'},
+  48:{icon:'🌫️',desc:'Kabut Tebal',type:'fog'},
+  51:{icon:'🌦️',desc:'Gerimis Ringan',type:'drizzle'},
+  53:{icon:'🌦️',desc:'Gerimis',type:'drizzle'},
+  55:{icon:'🌧️',desc:'Gerimis Lebat',type:'drizzle'},
+  61:{icon:'🌧️',desc:'Hujan Ringan',type:'rain'},
+  63:{icon:'🌧️',desc:'Hujan Sedang',type:'rain'},
+  65:{icon:'🌧️',desc:'Hujan Lebat',type:'rain'},
+  71:{icon:'🌨️',desc:'Salju Ringan',type:'snow'},
+  73:{icon:'❄️',desc:'Salju Sedang',type:'snow'},
+  75:{icon:'❄️',desc:'Salju Lebat',type:'snow'},
+  80:{icon:'🌦️',desc:'Hujan Shower',type:'rain'},
+  81:{icon:'🌧️',desc:'Hujan Shower Lebat',type:'rain'},
+  82:{icon:'⛈️',desc:'Hujan Badai',type:'rain'},
+  95:{icon:'⛈️',desc:'Badai Petir',type:'rain'},
+  96:{icon:'⛈️',desc:'Badai + Hujan Es',type:'rain'},
+  99:{icon:'⛈️',desc:'Badai Petir Lebat',type:'rain'},
+}
+
+async function fetchWeather(lat, lon) {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode,windspeed_10m&timezone=auto&forecast_days=1`
+    const res = await fetch(url)
+    const data = await res.json()
+    const curr = data.current
+    const wmo = WMO_MAP[curr.weathercode] || {icon:'🌡️', desc:'Tidak Diketahui', type:'clear'}
+    document.getElementById('weatherIco').textContent = wmo.icon
+    document.getElementById('weatherTemp').textContent = `${Math.round(curr.temperature_2m)}°C`
+    document.getElementById('weatherDesc').textContent = wmo.desc
+    if (window._setSkyWeather) window._setSkyWeather(wmo.type)
+  } catch(e) {
+    document.getElementById('weatherDesc').textContent = 'Gagal memuat cuaca'
+  }
+}
+
+async function fetchCityName(lat, lon) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`)
+    const data = await res.json()
+    const city = data.address.city || data.address.town || data.address.village || data.address.county || 'Lokasimu'
+    document.getElementById('weatherLoc').textContent = `📍 ${city}`
+  } catch(e) {
+    document.getElementById('weatherLoc').textContent = '📍 Lokasimu'
+  }
+}
+
+function initWeather() {
+  if (!navigator.geolocation) {
+    document.getElementById('weatherDesc').textContent = 'GPS tidak tersedia'
+    return
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const {latitude: lat, longitude: lon} = pos.coords
+      fetchWeather(lat, lon)
+      fetchCityName(lat, lon)
+      // refresh every 10 minutes
+      setInterval(() => fetchWeather(lat, lon), 600000)
+    },
+    () => {
+      document.getElementById('weatherLoc').textContent = '📍 Akses lokasi ditolak'
+      document.getElementById('weatherDesc').textContent = 'Aktifkan GPS untuk cuaca real-time'
+    },
+    { timeout: 10000, maximumAge: 300000 }
+  )
+}
+
+// ═══════════════════════════════════════
+//  NOTIFY MODAL
+// ═══════════════════════════════════════
+function showNotify() {
+  const key = 'ps_notify_hide_date'
+  const today = new Date().toDateString()
+  if (localStorage.getItem(key) === today) return
+  document.getElementById('notifyModal').classList.remove('hide')
+}
+function closeNotify() {
+  document.getElementById('notifyModal').classList.add('hide')
+  saveNotifyPref()
+}
+function saveNotifyPref() {
+  const cb = document.getElementById('notifyDontShow')
+  if (cb && cb.checked) {
+    localStorage.setItem('ps_notify_hide_date', new Date().toDateString())
+  }
+}
+
+// ═══════════════════════════════════════
+//  JAKARTA REAL-TIME CLOCK (Asia/Jakarta)
+// ═══════════════════════════════════════
+function getJakartaDate() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }))
+}
+function updateJakartaClock() {
+  const jkt = getJakartaDate()
+  const hh = String(jkt.getHours()).padStart(2,'0')
+  const mm = String(jkt.getMinutes()).padStart(2,'0')
+  const ss = String(jkt.getSeconds()).padStart(2,'0')
+  const el = document.getElementById('jakartaClock')
+  if (el) el.textContent = `${hh}:${mm}:${ss}`
+}
+updateJakartaClock()
+setInterval(updateJakartaClock, 1000)
+
+// ═══════════════════════════════════════
+//  WEATHER SCENE CANVAS
+// ═══════════════════════════════════════
+;(function(){
+  const canvas = document.getElementById('weatherCanvas')
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  let W, H
+  const resize = () => { W = canvas.width = innerWidth; H = canvas.height = innerHeight }
+  resize()
+  window.addEventListener('resize', resize)
+  const clouds = []
+  for (let i = 0; i < 8; i++) {
+    clouds.push({
+      x: Math.random() * innerWidth * 1.5,
+      y: Math.random() * innerHeight * 0.40,
+      w: 200 + Math.random() * 280,
+      h: 65 + Math.random() * 85,
+      speed: 0.10 + Math.random() * 0.20,
+      opacity: 0.50 + Math.random() * 0.40,
+    })
+  }
+  function drawCloud(x, y, w, h, op) {
+    ctx.save(); ctx.globalAlpha = op
+    const g = ctx.createRadialGradient(x, y, h * 0.05, x, y - h * 0.1, h * 0.95)
+    g.addColorStop(0, 'rgba(255,255,255,0.95)')
+    g.addColorStop(0.6, 'rgba(220,235,250,0.75)')
+    g.addColorStop(1, 'rgba(180,210,230,0.0)')
+    ctx.fillStyle = g
+    const puffs = [[0,0,h*0.52],[w*0.23,-h*0.20,h*0.44],[-w*0.20,-h*0.12,h*0.36],[w*0.44,-h*0.08,h*0.40],[-w*0.38,h*0.05,h*0.30],[w*0.62,h*0.05,h*0.28]]
+    ctx.beginPath()
+    puffs.forEach(([ox,oy,r]) => { ctx.moveTo(x+ox+r,y+oy); ctx.arc(x+ox,y+oy,r,0,Math.PI*2) })
+    ctx.fill(); ctx.restore()
+  }
+  function drawLake(y) {
+    ctx.save()
+    const lg = ctx.createLinearGradient(0, y, 0, H)
+    lg.addColorStop(0, 'rgba(100,165,185,0.55)')
+    lg.addColorStop(0.5, 'rgba(75,140,165,0.42)')
+    lg.addColorStop(1, 'rgba(45,95,118,0.28)')
+    ctx.fillStyle = lg; ctx.fillRect(0, y, W, H - y)
+    ctx.strokeStyle = 'rgba(255,255,255,0.055)'; ctx.lineWidth = 1
+    for (let ry = y + 12; ry < H; ry += 20) {
+      ctx.beginPath(); ctx.moveTo(0, ry)
+      for (let rx = 0; rx < W; rx += 36) {
+        ctx.quadraticCurveTo(rx+18, ry+3*Math.sin(Date.now()/2000+rx/50), rx+36, ry)
+      }
+      ctx.stroke()
+    }
+    ctx.restore()
+  }
+  function drawHills(y) {
+    ctx.save(); ctx.globalAlpha = 0.62
+    const hg = ctx.createLinearGradient(0, y-90, 0, y+50)
+    hg.addColorStop(0,'rgba(58,98,48,0.92)'); hg.addColorStop(1,'rgba(38,68,32,0.72)')
+    ctx.fillStyle = hg; ctx.beginPath()
+    ctx.moveTo(-W*0.05, H); ctx.bezierCurveTo(W*0.05,y+25,W*0.22,y-68,W*0.40,y+8); ctx.lineTo(W*0.40,H); ctx.closePath(); ctx.fill()
+    const hg2 = ctx.createLinearGradient(0, y-70, 0, y+55)
+    hg2.addColorStop(0,'rgba(52,92,42,0.92)'); hg2.addColorStop(1,'rgba(32,62,28,0.72)')
+    ctx.fillStyle = hg2; ctx.beginPath()
+    ctx.moveTo(W*0.60,y+12); ctx.bezierCurveTo(W*0.76,y-58,W*0.92,y+18,W*1.08,H); ctx.lineTo(W*0.60,H); ctx.closePath(); ctx.fill()
+    ctx.restore()
+  }
+  function frame() {
+    ctx.clearRect(0,0,W,H)
+    const jkt = getJakartaDate(); const h = jkt.getHours()
+    let s0, s1, s2
+    if (h>=5&&h<10){s0='rgba(28,75,135,0.82)';s1='rgba(75,145,200,0.72)';s2='rgba(175,218,240,0.58)'}
+    else if (h>=10&&h<15){s0='rgba(45,115,185,0.78)';s1='rgba(95,165,218,0.68)';s2='rgba(198,228,248,0.52)'}
+    else if (h>=15&&h<19){s0='rgba(55,28,75,0.82)';s1='rgba(175,75,28,0.68)';s2='rgba(228,155,55,0.52)'}
+    else {s0='rgba(4,8,22,0.94)';s1='rgba(8,18,48,0.82)';s2='rgba(12,28,58,0.65)'}
+    const sg = ctx.createLinearGradient(0,0,0,H*0.62)
+    sg.addColorStop(0,s0);sg.addColorStop(0.5,s1);sg.addColorStop(1,s2)
+    ctx.fillStyle=sg; ctx.fillRect(0,0,W,H)
+    const nightMult = (h>=19||h<5)?0.32:1.0
+    clouds.forEach(c => { c.x -= c.speed; if (c.x+c.w<-50) c.x=W+50; drawCloud(c.x,c.y,c.w,c.h,c.opacity*nightMult) })
+    const lakeY = H*0.54
+    drawHills(lakeY); drawLake(lakeY)
+    requestAnimationFrame(frame)
+  }
+  frame()
+})()
+
+// ═══════════════════════════════════════
+//  NOWM TOGGLE
+// ═══════════════════════════════════════
+let _nowm = false
+
+function syncNowmUI() {
+  const pill = document.getElementById('nowmPill')
+  const badge = document.getElementById('wmNowmBadge')
+  const desc  = document.getElementById('wmToggleDesc')
+  const cb    = document.getElementById('wmCheckbox')
+
+  if (_nowm) {
+    // Watermark OFF
+    if (pill) {
+      pill.textContent = '🚫 Watermark: OFF'
+      pill.classList.add('wm-off'); pill.classList.remove('wm-on')
+    }
+    if (badge)  badge.classList.remove('hidden')
+    if (desc)   { desc.textContent = 'Watermark TIDAK akan ditambahkan (-nowm aktif)'; desc.style.color = 'var(--red)' }
+    if (cb && !cb.checked) {} // already unchecked
+  } else {
+    // Watermark ON
+    if (pill) {
+      pill.textContent = '🖊️ Watermark: ON'
+      pill.classList.remove('wm-off'); pill.classList.add('wm-on')
+    }
+    if (badge)  badge.classList.add('hidden')
+    if (desc)   { desc.textContent = 'Watermark akan ditambahkan ke hasil'; desc.style.color = '' }
+  }
+}
+
+function toggleNowm() {
+  _nowm = !_nowm
+  const cb = document.getElementById('wmCheckbox')
+  if (cb) cb.checked = !_nowm  // checkbox ON = wm ON = nowm OFF
+  syncNowmUI()
+}
+
+function onWmChange(cb) {
+  // checkbox checked = WM ON = nowm false
+  _nowm = !cb.checked
+  syncNowmUI()
+}
+
+// ═══════════════════════════════════════
+//  GUIDE STUBS (panel dihapus)
+// ═══════════════════════════════════════
+function showGuide() {}
+function closeGuide() { window._guideSeen = true }
+function closeGuideAndUpload() {
+  window._guideSeen = true
+  setTimeout(() => document.getElementById('formCard')?.scrollIntoView({behavior:'smooth'}), 300)
+}
+
+// ═══════════════════════════════════════
+//  COUNTER ANIMATION
+// ═══════════════════════════════════════
+function animCount(el, target, dur) {
+  let v = 0, step = target / 60
+  const id = setInterval(() => {
+    v = Math.min(v + step, target)
+    el.textContent = Math.floor(v)
+    if (v >= target) clearInterval(id)
+  }, dur / 60)
+}
+
+// ═══════════════════════════════════════
+//  BUTTON RIPPLE
+// ═══════════════════════════════════════
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn-main,.room-btn,.btn-copy')
+  if (!btn) return
+  const r = btn.getBoundingClientRect()
+  const el = document.createElement('span')
+  el.className = 'ripple-el'
+  const size = Math.max(r.width, r.height) * 2
+  el.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-r.left-size/2}px;top:${e.clientY-r.top-size/2}px`
+  btn.appendChild(el)
+  setTimeout(() => el.remove(), 700)
+})
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  applyTheme()
+  setInterval(applyTheme, 60000)
+  updateJakartaClock()
+
+  renderRooms()
+  initWeather()
+  showNotify()
+
+  // drag & drop
+  const dz = document.getElementById('dropzone')
+  dz.addEventListener('dragover', e => { e.preventDefault(); if (!S.file) dz.classList.add('drag-over') })
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'))
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over')
+    if (!S.file && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0])
+  })
+})
+
+function renderRooms() {
+  document.getElementById('roomGrid').innerHTML = CFG.rooms.map(r =>
+    `<a class="room-btn" href="${r.link}" target="_blank">
+      ${r.channel ? '📢' : '📱'} ${r.label}
+    </a>`
+  ).join('')
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  S.tab = tab
+  document.getElementById('tabFile').classList.toggle('active', tab === 'file')
+  document.getElementById('tabUrl').classList.toggle('active', tab === 'url')
+  document.getElementById('panelFile').classList.toggle('hidden', tab !== 'file')
+  document.getElementById('panelUrl').classList.toggle('hidden', tab !== 'url')
+  checkBtn()
+}
+
+// ─── MODE ─────────────────────────────────────────────────────────────────────
+function setMode(m) {
+  S.mode = m
+  ;['fast','normal','standard'].forEach(x => {
+    const el = document.getElementById('mode' + x.charAt(0).toUpperCase() + x.slice(1))
+    el.className = `mode-btn mode-${x}` + (x === m ? ` sel-${x}` : '')
+  })
+}
+
+// ─── TYPE (auto-detect dari file, tidak perlu dipilih manual) ─────────────────
+function setType(t) {
+  S.type = t
+  // type-row dihapus, auto detect lewat handleFile()
+}
+
+// ─── FILE HANDLING ────────────────────────────────────────────────────────────
+function triggerInput() {
+  if (S.file) return
+  const fi = document.getElementById('fileInputFile')
+  fi.value = ''
+  fi.removeAttribute('capture')
+  if (window._pauseSkyAnim) window._pauseSkyAnim()
+  const resumeAnim = () => {
+    if (window._resumeSkyAnim) window._resumeSkyAnim()
+    fi.removeEventListener('change', resumeAnim)
+    fi.removeEventListener('cancel', resumeAnim)
+  }
+  fi.addEventListener('change', resumeAnim)
+  fi.addEventListener('cancel', resumeAnim)
+  setTimeout(() => { if (window._resumeSkyAnim) window._resumeSkyAnim() }, 30000)
+  fi.click()
+}
+
+function handleFile(file) {
+  if (!file) return
+  const ext = file.name.split('.').pop().toLowerCase()
+  const imgExts = ['jpg','jpeg','png','gif','webp','bmp','heic','heif','avif','tiff','tif']
+  const vidExts = ['mp4','mkv','mov','avi','webm','3gp','3gpp','flv','ts','wmv','m4v','mpeg','mpg','ogv']
+  const isImg = file.type.startsWith('image/') || ((!file.type || file.type==='application/octet-stream') && imgExts.includes(ext))
+  const isVid = file.type.startsWith('video/') || ((!file.type || file.type==='application/octet-stream') && vidExts.includes(ext))
+  if (!isImg && !isVid) { showErr('File tidak didukung! Pilih foto atau video.'); return }
+  const maxMB = 150
+  if (file.size/1024/1024 > maxMB) {
+    showErr(`⚠️ File terlalu besar! Maks ${maxMB}MB untuk upload langsung.\n💡 Tip: Upload dulu ke Google Drive / Dropbox, lalu tempel link URL-nya di kolom "Atau masukkan URL" di bawah.`)
+    return
+  }
+
+  // Auto-set type berdasarkan file yang dipilih
+  S.type = isImg ? 'image' : 'video'
+
+  S.file = file
+  const dz = document.getElementById('dropzone')
+  dz.classList.add('has-file')
+  document.getElementById('dzDefault').classList.add('hidden')
+  document.getElementById('dzPreview').classList.remove('hidden')
+  document.getElementById('fpName').textContent = file.name
+  document.getElementById('fpMeta').textContent = `${fmtSize(file.size)} · ${isImg ? 'Gambar' : 'Video'} · ${file.type}`
+
+  if (isImg) {
+    const url = URL.createObjectURL(file)
+    const img = document.getElementById('fpThumb')
+    img.src = url; img.classList.remove('hidden')
+    document.getElementById('fpPh').classList.add('hidden')
+    document.getElementById('rotateControl').classList.remove('hidden')
+    const tmpImg = new Image()
+    tmpImg.onload = () => {
+      document.getElementById('dRes').textContent = `${tmpImg.width} × ${tmpImg.height}`
+      document.getElementById('dResRow').classList.remove('hidden')
+    }
+    tmpImg.src = url
+  } else {
+    document.getElementById('fpPh').textContent = '🎬'
+    document.getElementById('fpPh').classList.remove('hidden')
+    document.getElementById('fpThumb').classList.add('hidden')
+    document.getElementById('rotateControl').classList.add('hidden')
+    document.getElementById('dResRow').classList.add('hidden')
+  }
+
+  document.getElementById('dName').textContent = file.name
+  document.getElementById('dSize').textContent = fmtSize(file.size)
+  document.getElementById('dType').textContent = file.type || `${isImg ? 'Gambar' : 'Video'} (.${ext})`
+  document.getElementById('fileDetail').classList.remove('hidden')
+  clearErr(); checkBtn()
+}
+
+function removeFile(e) {
+  if (e && e.stopPropagation) { e.stopPropagation(); e.preventDefault() }
+  S.file = null; S.rotation = 0; S.type = null
+  const dz = document.getElementById('dropzone')
+  dz.classList.remove('has-file')
+  document.getElementById('dzDefault').classList.remove('hidden')
+  document.getElementById('dzPreview').classList.add('hidden')
+  document.getElementById('rotateControl').classList.add('hidden')
+  document.getElementById('fileDetail').classList.add('hidden')
+  document.getElementById('fileInputFile').value = ''
+  document.getElementById('fpThumb').src = ''
+  document.getElementById('fpThumb').classList.add('hidden')
+  document.getElementById('fpPh').classList.remove('hidden')
+  clearErr(); checkBtn()
+}
+
+function rotate(deg) {
+  S.rotation = deg === 0 ? 0 : (S.rotation + deg + 360) % 360
+  document.getElementById('fpThumb').style.transform = `rotate(${S.rotation}deg)`
+}
+
+function handleUrlInput(val) {
+  S.urlVal = val.trim()
+  const row = document.getElementById('urlDetailRow')
+  if (S.urlVal) {
+    row.classList.remove('hidden')
+    document.getElementById('urlPreview').textContent = S.urlVal
+  } else { row.classList.add('hidden') }
+  checkBtn()
+}
+
+function checkBtn() {
+  const ok = S.tab === 'file' ? !!S.file : !!S.urlVal
+  document.getElementById('btnUpload').disabled = !ok
+}
+
+// ─── UPLOAD ───────────────────────────────────────────────────────────────────
+async function startUpload() {
+  window._guideSeen = true
+  await _proceedUpload()
+}
+
+async function _proceedUpload() {
+  clearErr()
+  document.getElementById('btnUpload').disabled = true
+  document.getElementById('progressCard').classList.add('show')
+  document.getElementById('resultCard').classList.remove('show')
+  try {
+    let fileUrl = '', filename = '', fileSize = 0
+    if (S.tab === 'url') {
+      fileUrl = S.urlVal
+      filename = S.urlVal.split('/').pop().split('?')[0] || 'media'
+      setProgress(100, 'URL siap!', '—', '—', '—')
+      await new Promise(r => setTimeout(r, 600))
+    } else {
+      const r = await uploadToLitterbox(S.file)
+      fileUrl = r.url; filename = S.file.name; fileSize = S.file.size
+    }
+    const caption = document.getElementById('captionInput').value.trim()
+    S.token = makeToken(fileUrl, filename, fileSize, S.mode, caption, _nowm)
+    S.tokenExpAt = Date.now() + CFG.tokenExpirySec * 1000
+    await new Promise(r => setTimeout(r, 500))
+    document.getElementById('progressCard').classList.remove('show')
+    showResult(filename, fileSize)
+  } catch (err) {
+    document.getElementById('progressCard').classList.remove('show')
+    showErr('❌ ' + err.message.replace(/\n/g,' — '))
+    document.getElementById('btnUpload').disabled = false
+  }
+}
+
+// ─── UPLOAD CHAIN ─────────────────────────────────────────────────────────────
+function uploadToLitterbox(file) {
+  return new Promise((resolve, reject) => {
+    const MAX_SIZE = 150 * 1024 * 1024
+    if (file.size > MAX_SIZE) {
+      return reject(new Error(`Ukuran file melebihi batas 150 MB (${fmtSize(file.size)})`))
+    }
+
+    const xhr = new XMLHttpRequest()
+    let lastLoaded = 0, lastTime = Date.now()
+
+    xhr.upload.addEventListener('progress', e => {
+      if (!e.lengthComputable) return
+      const pct = Math.round(e.loaded / e.total * 100)
+      const now = Date.now(), dt = (now - lastTime) / 1000
+      const spd = dt > 0 ? (e.loaded - lastLoaded) / dt : 0
+      lastLoaded = e.loaded; lastTime = now
+      const rem = spd > 0 ? Math.ceil((e.total - e.loaded) / spd) + 's' : '—'
+      setProgress(pct, '🚀 Mengupload...', rem, fmtSize(spd) + '/s', `${fmtSize(e.loaded)} / ${fmtSize(e.total)}`)
+    })
+
+    xhr.onload = () => {
+      const raw = xhr.responseText.trim()
+      if (raw.startsWith('https://')) {
+        resolve({ url: raw })
+      } else {
+        reject(new Error('Upload gagal: ' + raw.slice(0, 150)))
+      }
+    }
+    xhr.onerror   = () => reject(new Error('Koneksi gagal'))
+    xhr.ontimeout = () => reject(new Error('Timeout'))
+    xhr.timeout   = 600000
+
+    const fd = new FormData()
+    fd.append('file', file, file.name)
+
+    xhr.open('POST', 'https://0x0.st')
+    xhr.send(fd)
+  })
+}
+
+function setProgress(pct, label, time, speed, size) {
+  document.getElementById('progBar').style.width = pct+'%'
+  document.getElementById('progPct').textContent = pct+'%'
+  document.getElementById('progLabel').textContent = label
+  document.getElementById('progTime').textContent = '⏱ '+time
+  document.getElementById('progSpeed').textContent = '⚡ '+speed
+  document.getElementById('progSizeVal').textContent = size
+}
+
+// ─── TOKEN ────────────────────────────────────────────────────────────────────
+function makeToken(url, filename, size, mode, caption, nowm = false) {
+  const payload = {url,filename,size,mode,caption,nowm,exp:Math.floor(Date.now()/1000)+CFG.tokenExpirySec,v:3}
+  // encodeURIComponent → escape semua karakter non-ASCII (emoji, huruf Arab, dll)
+  // lalu btoa aman karena semua sudah ASCII
+  const jsonStr = encodeURIComponent(JSON.stringify(payload))
+  const b64 = btoa(jsonStr).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'')
+  return `WXAI-${mode.toUpperCase()}-${b64}`
+}
+function parseToken(token) {
+  const parts = token.trim().split('-')
+  if (parts.length < 3 || parts[0] !== 'WXAI') throw new Error('Format token tidak valid')
+  const b64 = parts.slice(2).join('-').replace(/-/g,'+').replace(/_/g,'/') + '=='
+  try {
+    // Support token baru (URI-encoded) dan token lama (plain JSON)
+    const decoded = atob(b64)
+    const jsonStr = decoded.startsWith('%') ? decodeURIComponent(decoded) : decoded
+    return JSON.parse(jsonStr)
+  } catch(e) {
+    throw new Error('Token rusak atau tidak dapat didekode')
+  }
+}
+
+// ─── RESULT ───────────────────────────────────────────────────────────────────
+function showResult(filename, fileSize) {
+  document.getElementById('tokenBox').textContent = S.token
+  document.getElementById('captionResult').value = document.getElementById('captionInput').value
+  document.getElementById('rName').textContent = filename
+  document.getElementById('rSize').textContent = fileSize ? fmtSize(fileSize) : '(dari URL)'
+  document.getElementById('rTime').textContent = new Date().toLocaleTimeString('id-ID')
+  document.getElementById('rMode').textContent = {fast:'🟡 Fast',normal:'🟢 Normal',standard:'🔵 Standard'}[S.mode]
+  document.getElementById('resultCard').classList.add('show')
+  if (S.countdown) clearInterval(S.countdown)
+  S.countdown = setInterval(() => {
+    const rem = Math.max(0, S.tokenExpAt - Date.now())
+    const m = Math.floor(rem/60000), s = Math.floor((rem%60000)/1000)
+    document.getElementById('tokenCountdown').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')
+    if (rem <= 0) clearInterval(S.countdown)
+  }, 1000)
+  document.getElementById('resultCard').scrollIntoView({behavior:'smooth',block:'start'})
+}
+
+function copyToken() {
+  navigator.clipboard.writeText(S.token).then(() => {
+    const btn = document.getElementById('btnCopy')
+    btn.classList.add('copied'); btn.textContent = '✅ Token Tersalin!'
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '📋 Salin Token Dasar' }, 2500)
+  }).catch(() => {
+    const ta = document.createElement('textarea')
+    ta.value = S.token; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta)
+    const btn = document.getElementById('btnCopy')
+    btn.textContent = '✅ Token Tersalin!'
+    setTimeout(() => { btn.textContent = '📋 Salin Token Dasar' }, 2000)
+  })
+}
+
+function updateCaption() {
+  try {
+    const old = parseToken(S.token)
+    const cap = document.getElementById('captionResult').value.trim()
+    S.token = makeToken(old.url,old.filename,old.size,S.mode,cap,old.nowm ?? _nowm)
+    document.getElementById('tokenBox').textContent = S.token
+    const btn = document.getElementById('btnCopy')
+    btn.textContent = '🔄 Token Diupdate — Salin Lagi'; btn.classList.remove('copied')
+    setTimeout(() => { btn.textContent = '📋 Salin Token Dasar' }, 2500)
+  } catch (e) { showErr(e.message) }
+}
+
+function clearCaption() {
+  document.getElementById('captionResult').value = ''
+  document.getElementById('charCount2').textContent = '0/150 karakter'
+  updateCaption()
+}
+
+function resetAll() {
+  if (S.countdown) clearInterval(S.countdown)
+  Object.assign(S,{file:null,urlVal:'',rotation:0,token:'',tokenExpAt:0})
+  document.getElementById('resultCard').classList.remove('show')
+  document.getElementById('progressCard').classList.remove('show')
+  document.getElementById('captionInput').value = ''
+  document.getElementById('urlInput').value = ''
+  document.getElementById('charCount1').textContent = '0/150 karakter'
+  document.getElementById('urlDetailRow').classList.add('hidden')
+  removeFile(null)
+  window.scrollTo({top:0,behavior:'smooth'})
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function showTestModal() { document.getElementById('testModal').classList.remove('hide') }
+function closeTestModal() { document.getElementById('testModal').classList.add('hide') }
+function closeModalBg(e) { if (e.target===document.getElementById('testModal')) closeTestModal() }
+function doTestToken() {
+  const raw = document.getElementById('testTokenInput').value.trim()
+  const el = document.getElementById('testResult'); el.style.display='block'
+  if (!raw) { el.style.color='var(--red)'; el.textContent='⚠️ Paste token dulu ya!'; return }
+  try {
+    const p = parseToken(raw)
+    const expired = Date.now()/1000 > p.exp
+    const expStr = new Date(p.exp*1000).toLocaleString('id-ID')
+    el.style.color = expired ? 'var(--red)' : 'var(--teal)'
+    el.textContent = `${expired ? '❌ TOKEN KADALUARSA!' : '✅ Token Valid!'}\n\nURL      : ${p.url}\nFile     : ${p.filename}\nUkuran   : ${p.size ? fmtSize(p.size) : '—'}\nMode     : ${p.mode}\nCaption  : ${p.caption||'(kosong)'}\nExp      : ${expStr}\n${expired ? '⚠️ Silakan upload ulang di web.' : '⏱ Masih berlaku'}`
+  } catch (e) { el.style.color='var(--red)'; el.textContent='❌ '+e.message }
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function fmtSize(b) {
+  if (b < 1024) return b+' B'
+  if (b < 1048576) return (b/1024).toFixed(1)+' KB'
+  return (b/1048576).toFixed(2)+' MB'
+}
+function showErr(msg) { const el=document.getElementById('errBox'); el.textContent=msg; el.classList.add('show') }
+function clearErr() { document.getElementById('errBox').classList.remove('show') }
+function limitCaption(el) {
+  const MAX = 150
+  const codepoints = [...el.value]
+  if (codepoints.length > MAX) {
+    // Potong tepat di batas codepoint (bukan char/code unit) agar emoji tidak pecah
+    el.value = codepoints.slice(0, MAX).join('')
+  }
+}
+function updateCharCount(inputId, countId) {
+  // Array.from hitung per codepoint — emoji dihitung 1 karakter, bukan 2
+  const val = document.getElementById(inputId).value
+  const len = [...val].length
+  const el  = document.getElementById(countId)
+  el.textContent = `${len}/150 karakter`
+  el.style.color = len > 130 ? (len >= 150 ? 'var(--red)' : 'var(--amber)') : ''
+}
+</script>
+</body>
+</html>
