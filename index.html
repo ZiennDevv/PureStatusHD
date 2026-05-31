@@ -845,8 +845,7 @@ footer a{color:var(--teal);text-decoration:none;transition:color .8s}
   <!-- ══ FORM CARD ══ -->
   <div class="card" id="formCard">
     <div class="tab-row">
-      <button class="tab active" id="tabFile" onclick="switchTab('file')">☁️ Upload File</button>
-      <button class="tab" id="tabUrl" onclick="switchTab('url')">🔗 Via URL</button>
+      <button class="tab active" id="tabUrl" onclick="switchTab('url')">🔗 Masukkan URL Media</button>
     </div>
     <div class="card-body">
 
@@ -870,7 +869,7 @@ footer a{color:var(--teal);text-decoration:none;transition:color .8s}
       </div>
 
       <!-- Panel File -->
-      <div id="panelFile">
+      <div id="panelFile" class="hidden">
         <div class="dz" id="dropzone">
           <div id="dzDefault">
             <div class="dz-ico">☁️</div>
@@ -911,7 +910,7 @@ footer a{color:var(--teal);text-decoration:none;transition:color .8s}
       </div>
 
       <!-- Panel URL -->
-      <div id="panelUrl" class="hidden">
+      <div id="panelUrl">
         <div class="url-info">
           📌 Paste URL file dari <b>Catbox</b>, <b>Litterbox</b>, <b>Tmpfiles</b>, atau hosting lain.<br>
           Token digenerate otomatis. Support hingga <b>500MB</b> via URL.
@@ -1611,11 +1610,10 @@ function renderRooms() {
 
 // ─── TABS ─────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  S.tab = tab
-  document.getElementById('tabFile').classList.toggle('active', tab === 'file')
-  document.getElementById('tabUrl').classList.toggle('active', tab === 'url')
-  document.getElementById('panelFile').classList.toggle('hidden', tab !== 'file')
-  document.getElementById('panelUrl').classList.toggle('hidden', tab !== 'url')
+  S.tab = 'url'
+  document.getElementById('tabUrl').classList.add('active')
+  document.getElementById('panelFile').classList.add('hidden')
+  document.getElementById('panelUrl').classList.remove('hidden')
   checkBtn()
 }
 
@@ -1736,7 +1734,7 @@ function handleUrlInput(val) {
 }
 
 function checkBtn() {
-  const ok = S.tab === 'file' ? !!S.file : !!S.urlVal
+  const ok = !!S.urlVal
   document.getElementById('btnUpload').disabled = !ok
 }
 
